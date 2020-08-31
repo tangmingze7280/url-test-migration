@@ -8,6 +8,7 @@ import cn.hutool.core.util.URLUtil;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -149,5 +150,36 @@ public class UrlTestUtil {
             }
         }
         return mEndList;
+    }
+    /**
+     * @author tmz
+     * @description 多线程测试多文件
+     * @date 14:09 2020/8/31
+     * @param fileUrl
+     * @param outFileUrl
+     * @param  host
+     * @param notFountUrl
+     */
+    public static void urlTestThreadLine(List<String> fileUrl, String outFileUrl, String host, String notFountUrl) {
+        List<String> urls = new LinkedList<>();
+        for (String item : fileUrl) {
+            urls.addAll(FileUtil.readLines(item, "utf-8"));
+        }
+        CopyOnWriteArrayList<String> unUpdate = new CopyOnWriteArrayList<>();
+        CopyOnWriteArrayList<String> notFountUrlList = new CopyOnWriteArrayList<>();
+        ThreadPoolExecutor threadPoolExecutor = ThreadUtil.newExecutor(4, 32);
+        try {
+            getList(50,urls).forEach(e->{
+                threadPoolExecutor.execute(() -> {
+                    urlTestLine(e,unUpdate,notFountUrlList,host);
+                });
+            });
+            threadPoolExecutor.shutdown();
+            threadPoolExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            FileUtil.writeLines(unUpdate, outFileUrl, "utf-8");
+            FileUtil.writeLines(notFountUrlList, notFountUrl, "utf-8");
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 }
